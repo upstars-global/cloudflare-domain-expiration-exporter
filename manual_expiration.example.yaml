@@ -1,0 +1,5 @@
+# put here manually assigned expiration dates for domains
+# this file is not used by the system, it is just an example
+
+domains:
+  example.com: "2026-03-18T00:00:00Z"
