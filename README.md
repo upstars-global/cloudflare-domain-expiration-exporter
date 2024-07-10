@@ -27,6 +27,12 @@ API server listens `8080` port.
 
 Metrics are accessible at `http://localhost:8080/metrics`.
 
+## Checker
+
+Checker interval was set to 1 hour.
+
+Also checker will retry to get the domain expiration date 3 times if it fails.
+
 ## Set manual expiration
 
 You can set the expiration date manually by setting domain expirations in file `manual_expiration.yaml`.
