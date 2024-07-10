@@ -25,6 +25,8 @@ API server listens `8080` port.
       - `ok`: The domain is not expired.
       - `unknown`: The domain expiration status is unknown.
 
+Metrics are accessible at `http://localhost:8080/metrics`.
+
 ## Set manual expiration
 
 You can set the expiration date manually by setting domain expirations in file `manual_expiration.yaml`.
