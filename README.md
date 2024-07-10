@@ -28,7 +28,7 @@ API server listens `8080` port.
 ## Set manual expiration
 
 You can set the expiration date manually by setting domain expirations in file `manual_expiration.yaml`.
-To da that you can simply copy the `manual_expiration.example.yaml` file and set the expiration date for the domains.
+To do that you can simply copy the `manual_expiration.example.yaml` file and set the expiration date for the domains.
 
 ## License
 
