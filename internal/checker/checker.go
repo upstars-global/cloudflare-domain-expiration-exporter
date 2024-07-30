@@ -2,11 +2,12 @@ package checker
 
 import (
 	"context"
-	"github.com/upstars-global/cloudflare-domain-expiration-exporter/internal/cf"
-	"github.com/upstars-global/cloudflare-domain-expiration-exporter/internal/expiration"
 	"go.uber.org/zap"
 	"sync"
 	"time"
+
+	"github.com/upstars-global/domains-expiration-exporter/internal/cf"
+	"github.com/upstars-global/domains-expiration-exporter/internal/expiration"
 )
 
 // checkInterval is the interval to check the domains

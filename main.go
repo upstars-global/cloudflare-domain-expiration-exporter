@@ -3,12 +3,13 @@ package main
 import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/upstars-global/cloudflare-domain-expiration-exporter/internal/cf"
-	"github.com/upstars-global/cloudflare-domain-expiration-exporter/internal/checker"
-	"github.com/upstars-global/cloudflare-domain-expiration-exporter/internal/expiration"
-	"github.com/upstars-global/cloudflare-domain-expiration-exporter/internal/exporter"
 	"go.uber.org/zap"
 	"net/http"
+
+	"github.com/upstars-global/domains-expiration-exporter/internal/cf"
+	"github.com/upstars-global/domains-expiration-exporter/internal/checker"
+	"github.com/upstars-global/domains-expiration-exporter/internal/expiration"
+	"github.com/upstars-global/domains-expiration-exporter/internal/exporter"
 )
 
 const namespace = "domain-expiration-checker"

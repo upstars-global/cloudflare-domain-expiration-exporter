@@ -2,7 +2,7 @@ package exporter
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/upstars-global/cloudflare-domain-expiration-exporter/internal/checker"
+	"github.com/upstars-global/domains-expiration-exporter/internal/checker"
 )
 
 const namespace = "domain_expiration_checker"
