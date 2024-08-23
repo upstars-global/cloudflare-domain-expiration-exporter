@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/ghodss/yaml"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -43,4 +44,17 @@ func parseManualExpirations() (map[string]time.Time, error) {
 	}
 
 	return m.Domains, nil
+}
+
+func Get_exporter_envs() []string {
+	comp := regexp.MustCompile("^EXPIRE_EXPORTER_.*$")
+
+	var envs []string
+	for _, e := range os.Environ() {
+		if comp.MatchString(e) {
+			envs = append(envs, e)
+		}
+	}
+
+	return envs
 }

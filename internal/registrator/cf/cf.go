@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/cloudflare/cloudflare-go"
+	"github.com/upstars-global/domains-expiration-exporter/internal/registrator"
+	"github.com/upstars-global/domains-expiration-exporter/internal/types"
+	"time"
 )
 
 type cfImpl struct {
@@ -11,12 +14,7 @@ type cfImpl struct {
 	obfuscatedAPIKey string
 }
 
-type CF interface {
-	GetDomains(ctx context.Context) ([]string, error)
-	GetAPIKeyObfuscated() string
-}
-
-func New(apiKey string) (CF, error) {
+func New(apiKey string) (registrator.Registrator, error) {
 	api, err := cloudflare.NewWithAPIToken(apiKey)
 	if err != nil {
 		return nil, err
@@ -44,20 +42,30 @@ func (c *cfImpl) checkPermissions(ctx context.Context) error {
 	return nil
 }
 
-func (c *cfImpl) GetDomains(ctx context.Context) ([]string, error) {
+func (c *cfImpl) GetDomains(ctx context.Context) (types.DomainInfo, error) {
+	var info types.DomainInfo
+
 	zones, err := c.api.ListZones(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	var domains []string
 	for _, z := range zones {
-		domains = append(domains, z.Name)
+		t, err := c.getExpirationDate(ctx, z.Name)
+		if err != nil {
+			return nil, err
+		}
+		info[z.Name] = t
 	}
 
-	return domains, nil
+	return info, nil
 }
 
 func (c *cfImpl) GetAPIKeyObfuscated() string {
 	return c.obfuscatedAPIKey
+}
+
+func (c *cfImpl) getExpirationDate(ctx context.Context, domain string) (time.Time, error) {
+	//TODO: write real function that return expiration date for certain domain
+	return time.Time{}, nil
 }

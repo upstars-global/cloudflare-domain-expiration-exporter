@@ -1,42 +1,65 @@
 package main
 
 import (
+	"context"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/upstars-global/domains-expiration-exporter/internal/config"
+	"github.com/upstars-global/domains-expiration-exporter/internal/exporter"
+	"github.com/upstars-global/domains-expiration-exporter/internal/registrator"
+	"github.com/upstars-global/domains-expiration-exporter/internal/registrator/domainsList"
+	"github.com/upstars-global/domains-expiration-exporter/internal/registrator/godaddy"
+	pn "github.com/upstars-global/domains-expiration-exporter/internal/registrator/pananames"
 	"go.uber.org/zap"
 	"net/http"
-
-	"github.com/upstars-global/domains-expiration-exporter/internal/cf"
-	"github.com/upstars-global/domains-expiration-exporter/internal/checker"
-	"github.com/upstars-global/domains-expiration-exporter/internal/expiration"
-	"github.com/upstars-global/domains-expiration-exporter/internal/exporter"
 )
 
 const namespace = "domain-expiration-checker"
 
 func main() {
 	log, _ := zap.NewProduction()
+	defer func(log *zap.Logger) {
+		_ = log.Sync()
+	}(log)
 
-	apiKeys := argvGetApiKeys()
-	apis := make([]cf.CF, 0)
-	for _, apiKey := range apiKeys {
-		c, err := cf.New(apiKey)
-		if err != nil {
-			log.Fatal("could not create cloudflare api", zap.Error(err))
-		}
-		apis = append(apis, c)
-	}
+	var (
+		api registrator.Registrator
+		err error
+	)
 
-	manualExpirations, err := parseManualExpirations()
+	regAuth, err := config.New()
+
 	if err != nil {
-		log.Fatal("could not parse manual expirations", zap.Error(err))
+		log.Fatal("failed to get registrator auth info", zap.Error(err))
 	}
 
-	ch := checker.New(log, apis, expiration.New(manualExpirations))
-	go ch.Start()
+	if regAuth.PananameAuth.Token != "" {
+		api, err = pn.New(regAuth.PananameAuth.Token)
+	}
+
+	if regAuth.GodaddyAuth.Secret != "" && regAuth.GodaddyAuth.Token != "" {
+		api, err = godaddy.New(regAuth.GodaddyAuth.Secret, regAuth.GodaddyAuth.Secret, "dev")
+	}
+
+	if len(regAuth.DomainsList.List) > 0 {
+		api, err = domainsList.New(regAuth.DomainsList.List)
+	}
+
+	if err != nil {
+		log.Fatal("Unable to create api", zap.Error(err))
+	}
+
+	if api == nil {
+		log.Fatal("Unable to get registrator's auth info")
+	}
+
+	domains, err := api.GetDomains(context.Background())
+	if err != nil {
+		log.Fatal("Unable to get domains", zap.Error(err))
+	}
 
 	log.Info("registering exporter")
-	prometheus.MustRegister(exporter.New(ch))
+	prometheus.MustRegister(exporter.New(&domains))
 
 	log.Info("starting http server", zap.String("address", ":8080"))
 	http.Handle("/metrics", promhttp.Handler())

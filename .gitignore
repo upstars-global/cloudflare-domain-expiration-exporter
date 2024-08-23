@@ -1,2 +1,4 @@
 manual_expiration.yaml
 .idea
+.envrc
+bin/
