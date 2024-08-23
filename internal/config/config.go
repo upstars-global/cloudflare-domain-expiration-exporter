@@ -1,121 +1,87 @@
 package config
 
 import (
-	"fmt"
-	"os"
+	"github.com/spf13/viper"
 	"strings"
 )
 
-type AuthInfo struct {
-	Registrator string
-	PananameAuth
-	GodaddyAuth
-	DomainsList
+const (
+	defaultConfigFormat = "yaml"
+	defaultConfigPath   = "./"
+	defaultName         = "config.yaml"
+	defaultEnvPrefix    = "EXPORTER"
+)
+
+type Config struct {
+	path   string
+	format string
+	prefix string
+	name   string
+
+	LogLevel     string `mapstructure:"logLevel"`
+	Registrators struct {
+		Domains []string `mapstructure:"domains"`
+
+		Godaddy struct {
+			Secret string `mapstructure:"secret"`
+			Token  string `mapstructure:"token"`
+		} `mapstructure:"godaddy"`
+
+		Pananame struct {
+			Token string `mapstructure:"token"`
+		} `mapstructure:"pananame"`
+	} `mapstructure:"registrators"`
 }
 
-type PananameAuth struct {
-	Token string
+type Option func(*Config)
+
+func WithName(name string) Option {
+	return func(c *Config) {
+		c.name = name
+	}
 }
 
-type GodaddyAuth struct {
-	Secret string
-	Token  string
+func WithConfigFormat(format string) Option {
+	return func(c *Config) {
+		c.format = format
+	}
 }
 
-type DomainsList struct {
-	List []string
+func WithConfigPath(path string) Option {
+	return func(c *Config) {
+		c.path = path
+	}
 }
 
-func New() (*AuthInfo, error) {
-	info := new(AuthInfo)
+func New(options ...Option) (*Config, error) {
+	cfg := &Config{
+		path:   defaultConfigPath,
+		format: defaultConfigFormat,
+		prefix: defaultEnvPrefix,
+		name:   defaultName,
+	}
 
-	if val, ok, err := searchPananame(); ok && err == nil {
-		info.PananameAuth = *val
-		return info, nil
-	} else if ok && err != nil {
+	// Apply options
+	for _, opt := range options {
+		opt(cfg)
+	}
+
+	viper.SetConfigName(cfg.name)
+	viper.SetConfigType(cfg.format)
+	viper.AddConfigPath(cfg.path)
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	viper.SetEnvPrefix(cfg.prefix)
+	viper.AutomaticEnv()
+
+	// Read config file
+	if err := viper.ReadInConfig(); err != nil {
 		return nil, err
 	}
 
-	if val, ok, err := searchGodaddy(); ok && err == nil {
-		info.GodaddyAuth = *val
-		return info, nil
-	} else if ok && err != nil {
+	// Unmarshal config into struct
+	if err := viper.Unmarshal(&cfg); err != nil {
 		return nil, err
 	}
 
-	if val, ok, err := searchDomainsList(); ok && err == nil {
-		info.DomainsList = *val
-		return info, nil
-	} else if ok && err != nil {
-		return nil, err
-	}
-
-	return &AuthInfo{}, nil
-}
-
-func searchPananame() (*PananameAuth, bool, error) {
-	if val, ok := os.LookupEnv("PANANAME_TOKEN"); ok {
-		if len(val) == 0 {
-			return &PananameAuth{Token: val}, true, nil
-		} else {
-			return nil, true, fmt.Errorf("PANANAME_TOKEN env var found but is empty")
-		}
-	}
-	return nil, false, nil
-}
-
-func searchGodaddy() (*GodaddyAuth, bool, error) {
-	var (
-		secret string
-		token  string
-
-		secretOk bool
-		tokenOk  bool
-
-		info *GodaddyAuth
-	)
-
-	if secret, secretOk = os.LookupEnv("GODADDY_SECRET"); secretOk {
-		if len(secret) == 0 {
-			info.Secret = secret
-		} else {
-			return nil, true, fmt.Errorf("GODADDY_SECRET env var found but is empty")
-		}
-	}
-
-	if token, tokenOk = os.LookupEnv("GODADDY_TOKEN"); tokenOk {
-		if len(token) == 0 {
-			info.Token = token
-		} else {
-			return nil, true, fmt.Errorf("GODADDY_TOKEN env var found but is empty")
-		}
-	}
-
-	if secretOk && tokenOk {
-		return info, true, nil
-	}
-
-	if secretOk && !tokenOk {
-		return nil, true, fmt.Errorf("can't found GODADDY_TOKEN variable")
-	}
-
-	if !secretOk && tokenOk {
-		return nil, true, fmt.Errorf("can't found GODADDY_SECRET variable")
-	}
-
-	return nil, false, nil
-}
-
-func searchDomainsList() (*DomainsList, bool, error) {
-	dList := new(DomainsList)
-	if val, ok := os.LookupEnv("DOMAINS_LIST"); ok && len(val) > 0 {
-		lst := strings.Split(val, ",")
-		if len(lst) >= 0 {
-			dList.List = lst
-			return dList, true, nil
-		} else {
-			return nil, true, fmt.Errorf("DOMAINS_LIST env var found but is empty")
-		}
-	}
-	return nil, false, nil
+	return cfg, nil
 }
